@@ -671,7 +671,6 @@ class ProtonEmailClient:
             logger.error(f"Failed to get mailbox list: {e}")
             return []
         finally:
-            mail.close()
             mail.logout()
     
     def create_folder(self, folder_name: str):
@@ -689,7 +688,6 @@ class ProtonEmailClient:
             logger.error(f"Failed to create folder: {e}")
             return False
         finally:
-            mail.close()
             mail.logout()
     
     def delete_folder(self, folder_name: str):
@@ -707,7 +705,6 @@ class ProtonEmailClient:
             logger.error(f"Failed to delete folder: {e}")
             return False
         finally:
-            mail.close()
             mail.logout()
     
     def load_filter_rules(self) -> List[Dict]:
