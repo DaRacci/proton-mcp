@@ -78,8 +78,13 @@ class ProtonEmailClient:
     def search_emails(self, query: str = "ALL", mailbox: str = "INBOX", limit: int = 10):
         """Search emails in specified mailbox"""
         mail = self.connect_imap()
+        mailbox_selected = False
         try:
-            mail.select(mailbox)
+            status, _ = mail.select(mailbox)
+            if status != 'OK':
+                return []
+            mailbox_selected = True
+            
             status, messages = mail.search(None, query)
             
             if status != 'OK':
@@ -114,7 +119,8 @@ class ProtonEmailClient:
             
             return emails
         finally:
-            mail.close()
+            if mailbox_selected:
+                mail.close()
             mail.logout()
     
     def get_email_body(self, email_message):
@@ -142,8 +148,13 @@ class ProtonEmailClient:
     def get_full_email(self, email_id: str, mailbox: str = "INBOX"):
         """Get full email content by ID"""
         mail = self.connect_imap()
+        mailbox_selected = False
         try:
-            mail.select(mailbox)
+            status, _ = mail.select(mailbox)
+            if status != 'OK':
+                return None
+            mailbox_selected = True
+            
             status, msg_data = mail.fetch(email_id, '(RFC822)')
             
             if status != 'OK':
@@ -161,7 +172,8 @@ class ProtonEmailClient:
                 'body': self.get_email_body(email_message)
             }
         finally:
-            mail.close()
+            if mailbox_selected:
+                mail.close()
             mail.logout()
     
     def get_bulk_emails(self, email_ids: List[str], mailbox: str = "INBOX", batch_size: int = 50):
@@ -181,9 +193,13 @@ class ProtonEmailClient:
         
         mail = self.connect_imap()
         emails = {}
+        mailbox_selected = False
         
         try:
-            mail.select(mailbox)
+            status, _ = mail.select(mailbox)
+            if status != 'OK':
+                return {}
+            mailbox_selected = True
             
             # Process emails in batches for efficiency
             for i in range(0, len(email_ids), batch_size):
@@ -234,7 +250,8 @@ class ProtonEmailClient:
                             continue
         
         finally:
-            mail.close()
+            if mailbox_selected:
+                mail.close()
             mail.logout()
         
         return emails
@@ -249,9 +266,13 @@ class ProtonEmailClient:
         
         mail = self.connect_imap()
         emails = {}
+        mailbox_selected = False
         
         try:
-            mail.select(mailbox)
+            status, _ = mail.select(mailbox)
+            if status != 'OK':
+                return {}
+            mailbox_selected = True
             
             # Process in smaller batches since HTML emails are larger
             for i in range(0, len(email_ids), batch_size):
@@ -321,7 +342,8 @@ class ProtonEmailClient:
                             emails[email_id] = individual_result
         
         finally:
-            mail.close()
+            if mailbox_selected:
+                mail.close()
             mail.logout()
         
         return emails
@@ -450,8 +472,13 @@ class ProtonEmailClient:
     def move_email_to_folder(self, email_id: str, target_folder: str, source_folder: str = "INBOX"):
         """Move an email from one folder to another"""
         mail = self.connect_imap()
+        mailbox_selected = False
         try:
-            mail.select(source_folder)
+            status, _ = mail.select(source_folder)
+            if status != 'OK':
+                return False
+            mailbox_selected = True
+            
             # Copy email to target folder
             result = mail.copy(email_id, target_folder)
             if result[0] == 'OK':
@@ -466,7 +493,8 @@ class ProtonEmailClient:
             logger.error(f"Failed to move email: {e}")
             return False
         finally:
-            mail.close()
+            if mailbox_selected:
+                mail.close()
             mail.logout()
     
     def bulk_move_emails(self, email_ids: List[str], target_folder: str, source_folder: str = "INBOX", batch_size: int = 100):
@@ -489,9 +517,13 @@ class ProtonEmailClient:
         moved_count = 0
         failed_count = 0
         details = []
+        mailbox_selected = False
         
         try:
-            mail.select(source_folder)
+            status, _ = mail.select(source_folder)
+            if status != 'OK':
+                return {'moved': 0, 'failed': len(email_ids), 'error': f'Failed to select source folder: {source_folder}'}
+            mailbox_selected = True
             
             # Process emails in batches for efficiency
             for i in range(0, len(email_ids), batch_size):
@@ -545,7 +577,8 @@ class ProtonEmailClient:
             logger.error(f"Bulk move operation failed: {e}")
             return {'moved': 0, 'failed': len(email_ids), 'error': str(e)}
         finally:
-            mail.close()
+            if mailbox_selected:
+                mail.close()
             mail.logout()
         
         return {
@@ -575,9 +608,14 @@ class ProtonEmailClient:
         mail = self.connect_imap()
         marked_count = 0
         failed_count = 0
+        mailbox_selected = False
         
         try:
-            mail.select(mailbox)
+            status, _ = mail.select(mailbox)
+            if status != 'OK':
+                return {'marked': 0, 'failed': len(email_ids), 'error': f'Failed to select mailbox: {mailbox}'}
+            mailbox_selected = True
+            
             flag_action = '+FLAGS' if action == 'add' else '-FLAGS'
             
             # Process in batches
@@ -618,7 +656,8 @@ class ProtonEmailClient:
             logger.error(f"Bulk mark operation failed: {e}")
             return {'marked': 0, 'failed': len(email_ids), 'error': str(e)}
         finally:
-            mail.close()
+            if mailbox_selected:
+                mail.close()
             mail.logout()
         
         return {'marked': marked_count, 'failed': failed_count, 'total': len(email_ids)}
@@ -641,11 +680,15 @@ class ProtonEmailClient:
             if result['marked'] > 0:
                 # Expunge to permanently delete
                 mail = self.connect_imap()
+                mailbox_selected = False
                 try:
-                    mail.select(mailbox)
-                    mail.expunge()
+                    status, _ = mail.select(mailbox)
+                    if status == 'OK':
+                        mailbox_selected = True
+                        mail.expunge()
                 finally:
-                    mail.close()
+                    if mailbox_selected:
+                        mail.close()
                     mail.logout()
             return {'deleted': result['marked'], 'failed': result['failed'], 'permanent': True}
         else:
@@ -1099,8 +1142,13 @@ class ProtonEmailClient:
     def get_full_email_with_html(self, email_id: str, mailbox: str = "INBOX"):
         """Get full email content including HTML parts for link extraction"""
         mail = self.connect_imap()
+        mailbox_selected = False
         try:
-            mail.select(mailbox)
+            status, _ = mail.select(mailbox)
+            if status != 'OK':
+                return None
+            mailbox_selected = True
+            
             status, msg_data = mail.fetch(email_id, '(RFC822)')
             
             if status != 'OK':
@@ -1153,7 +1201,8 @@ class ProtonEmailClient:
                 'list_unsubscribe_post': email_message.get('List-Unsubscribe-Post', '')
             }
         finally:
-            mail.close()
+            if mailbox_selected:
+                mail.close()
             mail.logout()
     
     def find_unsubscribe_links(self, email_data: Dict) -> Dict[str, Any]:
