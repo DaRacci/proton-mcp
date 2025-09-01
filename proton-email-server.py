@@ -80,8 +80,9 @@ class ProtonEmailClient:
         mail = self.connect_imap()
         mailbox_selected = False
         try:
-            status, _ = mail.select(mailbox)
+            status, response = mail.select(mailbox)
             if status != 'OK':
+                logger.error(f"Failed to select mailbox '{mailbox}': {response}")
                 return []
             mailbox_selected = True
             
@@ -150,8 +151,9 @@ class ProtonEmailClient:
         mail = self.connect_imap()
         mailbox_selected = False
         try:
-            status, _ = mail.select(mailbox)
+            status, response = mail.select(mailbox)
             if status != 'OK':
+                logger.error(f"Failed to select mailbox '{mailbox}': {response}")
                 return None
             mailbox_selected = True
             
@@ -196,8 +198,9 @@ class ProtonEmailClient:
         mailbox_selected = False
         
         try:
-            status, _ = mail.select(mailbox)
+            status, response = mail.select(mailbox)
             if status != 'OK':
+                logger.error(f"Failed to select mailbox '{mailbox}': {response}")
                 return {}
             mailbox_selected = True
             
@@ -269,8 +272,9 @@ class ProtonEmailClient:
         mailbox_selected = False
         
         try:
-            status, _ = mail.select(mailbox)
+            status, response = mail.select(mailbox)
             if status != 'OK':
+                logger.error(f"Failed to select mailbox '{mailbox}': {response}")
                 return {}
             mailbox_selected = True
             
@@ -474,8 +478,9 @@ class ProtonEmailClient:
         mail = self.connect_imap()
         mailbox_selected = False
         try:
-            status, _ = mail.select(source_folder)
+            status, response = mail.select(source_folder)
             if status != 'OK':
+                logger.error(f"Failed to select source folder '{source_folder}': {response}")
                 return False
             mailbox_selected = True
             
@@ -520,8 +525,9 @@ class ProtonEmailClient:
         mailbox_selected = False
         
         try:
-            status, _ = mail.select(source_folder)
+            status, response = mail.select(source_folder)
             if status != 'OK':
+                logger.error(f"Failed to select source folder '{source_folder}': {response}")
                 return {'moved': 0, 'failed': len(email_ids), 'error': f'Failed to select source folder: {source_folder}'}
             mailbox_selected = True
             
@@ -611,8 +617,9 @@ class ProtonEmailClient:
         mailbox_selected = False
         
         try:
-            status, _ = mail.select(mailbox)
+            status, response = mail.select(mailbox)
             if status != 'OK':
+                logger.error(f"Failed to select mailbox '{mailbox}': {response}")
                 return {'marked': 0, 'failed': len(email_ids), 'error': f'Failed to select mailbox: {mailbox}'}
             mailbox_selected = True
             
@@ -682,10 +689,12 @@ class ProtonEmailClient:
                 mail = self.connect_imap()
                 mailbox_selected = False
                 try:
-                    status, _ = mail.select(mailbox)
+                    status, response = mail.select(mailbox)
                     if status == 'OK':
                         mailbox_selected = True
                         mail.expunge()
+                    else:
+                        logger.error(f"Failed to select mailbox '{mailbox}' for expunge: {response}")
                 finally:
                     if mailbox_selected:
                         mail.close()
@@ -1144,8 +1153,9 @@ class ProtonEmailClient:
         mail = self.connect_imap()
         mailbox_selected = False
         try:
-            status, _ = mail.select(mailbox)
+            status, response = mail.select(mailbox)
             if status != 'OK':
+                logger.error(f"Failed to select mailbox '{mailbox}': {response}")
                 return None
             mailbox_selected = True
             
